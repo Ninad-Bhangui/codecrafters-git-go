@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -64,14 +65,38 @@ func catFilePrettyPrint(gitObjectName string) {
 		return
 	}
 
-	r, err := zlib.NewReader(gitObject) // TODO: Handle error
+	r, err := zlib.NewReader(gitObject)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "fatal: Unable to decompress the object file: %s\n", err)
 	}
 	defer r.Close()
-	decompressedGitObject, _ := io.ReadAll(r)
-	data := string(decompressedGitObject[:])
-	parts := strings.Split(data, "\x00")
-	content := parts[1]
-	fmt.Fprintf(os.Stdout, content)
+	buf := make([]byte, 1)
+	var header []byte
+	// Read until null byte encountered
+	for {
+		n, err := r.Read(buf)
+		if n > 0 && buf[0] == 0 {
+			break
+		}
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Fprintf(os.Stderr, "fatal: Could not read object file: %s\n", err)
+		}
+
+	  header = append(header, buf[0])
+	}
+  headerParts := strings.Split(string(header), " ")
+  // kind := headerParts[0]
+  contentSize, err := strconv.ParseInt(headerParts[1],10, 64) //TODO: Check why it's int64 and why copyN needs int64 below
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "fatal: Invalid size in header of object file: %s\n", err)
+  }
+	io.CopyN(os.Stdout, r, contentSize)
+	// decompressedGitObject, _ := io.ReadAll(r)
+	// data := string(decompressedGitObject[:])
+	// parts := strings.Split(data, "\x00")
+	// content := parts[1]
+	// fmt.Fprintf(os.Stdout, content)
 }
