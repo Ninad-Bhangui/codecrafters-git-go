@@ -57,8 +57,17 @@ func main() {
 }
 
 func catFilePrettyPrint(gitObjectName string) {
+	matches := GetObjectsMatchingPrefix(".git/objects", gitObjectName)
+	if len(matches) > 1 {
+		fmt.Fprintf(os.Stderr, "error: short object ID %s is ambiguous", gitObjectName)
+		return
+	}
+	if len(matches) == 0 {
+		fmt.Fprintf(os.Stderr, "fatal: Not a valid object name: %s\n", gitObjectName)
+		return
+	}
 	gitObject, err := os.Open(
-		fmt.Sprintf(".git/objects/%s/%s", gitObjectName[:2], gitObjectName[2:]),
+		fmt.Sprintf(".git/objects/%s", matches[0]),
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "fatal: Not a valid object name: %s\n", err)
@@ -85,18 +94,28 @@ func catFilePrettyPrint(gitObjectName string) {
 			fmt.Fprintf(os.Stderr, "fatal: Could not read object file: %s\n", err)
 		}
 
-	  header = append(header, buf[0])
+		header = append(header, buf[0])
 	}
-  headerParts := strings.Split(string(header), " ")
-  // kind := headerParts[0]
-  contentSize, err := strconv.ParseInt(headerParts[1],10, 64) //TODO: Check why it's int64 and why copyN needs int64 below
-  if err != nil {
-    fmt.Fprintf(os.Stderr, "fatal: Invalid size in header of object file: %s\n", err)
-  }
+	headerParts := strings.Split(string(header), " ")
+	// kind := headerParts[0]
+	contentSize, err := strconv.ParseInt(
+		headerParts[1],
+		10,
+		64,
+	) // TODO: Check why it's int64 and why copyN needs int64 below
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "fatal: Invalid size in header of object file: %s\n", err)
+	}
 	io.CopyN(os.Stdout, r, contentSize)
-	// decompressedGitObject, _ := io.ReadAll(r)
-	// data := string(decompressedGitObject[:])
-	// parts := strings.Split(data, "\x00")
-	// content := parts[1]
-	// fmt.Fprintf(os.Stdout, content)
+}
+
+func GetObjectsMatchingPrefix(directoryName string, prefix string) []string {
+	entries, _ := os.ReadDir(fmt.Sprintf("%s/%s", directoryName, prefix[:2]))
+	matches := []string{}
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), prefix[2:]) {
+			matches = append(matches, fmt.Sprintf("%s/%s", prefix[:2], e.Name()))
+		}
+	}
+	return matches
 }
