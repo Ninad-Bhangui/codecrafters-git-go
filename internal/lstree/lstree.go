@@ -16,7 +16,7 @@ func LsTree(gitObjectName string, nameOnly bool) {
 		fmt.Fprintf(os.Stderr, "%s", err)
 	}
 	defer r.Close()
-	// Read until null byte encountered
+	// Read until first null byte encountered
 	parts := object.SplitBufferByNullByteN(r, 1)
 	header := parts[0]
 	headerParts := strings.Split(string(header), " ")
