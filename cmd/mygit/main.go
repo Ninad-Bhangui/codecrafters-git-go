@@ -7,6 +7,7 @@ import (
 
 	"github.com/codecrafters-io/git-starter-go/internal/catfile"
 	"github.com/codecrafters-io/git-starter-go/internal/hashobject"
+	"github.com/codecrafters-io/git-starter-go/internal/lstree"
 )
 
 // Usage: your_git.sh <command> <arg1> <arg2> ...
@@ -24,6 +25,9 @@ func main() {
 		false,
 		"Write the object into the object database",
 	)
+
+	lsTreeCmd := flag.NewFlagSet("ls-tree", flag.ExitOnError)
+	lsTreeNameOnly := lsTreeCmd.Bool("name-only", false, "Print Name only")
 
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "usage: mygit <command> [<args>...]\n")
@@ -62,6 +66,15 @@ func main() {
 			hashObjectCmd.PrintDefaults()
 		}
 		hashobject.HashObject(args[0], *hashObjectWriteMode)
+	case "ls-tree":
+		lsTreeCmd.Parse(os.Args[2:])
+		args := lsTreeCmd.Args()
+		if len(args) != 1 {
+			lsTreeCmd.PrintDefaults()
+		}
+
+		lstree.LsTree(args[0], *lsTreeNameOnly)
+
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command %s\n", command)
 		os.Exit(1)
