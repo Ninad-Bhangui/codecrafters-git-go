@@ -1,15 +1,12 @@
 package main
 
 import (
-	"compress/zlib"
-	"crypto/sha1"
-	"encoding/hex"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/codecrafters-io/git-starter-go/internal/catfile"
+	"github.com/codecrafters-io/git-starter-go/internal/hashobject"
 )
 
 // Usage: your_git.sh <command> <arg1> <arg2> ...
@@ -64,44 +61,7 @@ func main() {
 		if len(args) != 1 {
 			hashObjectCmd.PrintDefaults()
 		}
-		file, err := os.Open(args[0])
-		defer file.Close()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "fatal: Could not find file: %s\n", err)
-		}
-		hasher := sha1.New()
-		fileInfo, err := file.Stat()
-		if *hashObjectWriteMode {
-		}
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "fatal: Could not compute file size: %s\n", err)
-			return
-		}
-		io.WriteString(hasher, fmt.Sprintf("blob %d\000", fileInfo.Size()))
-		io.Copy(hasher, file)
-		checksum := hasher.Sum(nil)
-		hash, err := hex.EncodeToString(checksum), nil
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: Could not compute hash: %s", err)
-		}
-		if *hashObjectWriteMode {
-			dir := fmt.Sprintf(".git/objects/%s", hash[:2])
-			if err := os.MkdirAll(dir, 0755); err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating directory: %s\n", err)
-			}
-			outputFile, err := os.Create(fmt.Sprintf("%s/%s", dir, hash[2:]))
-			defer outputFile.Close()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "fatal: Could not write: %s\n", err)
-			}
-			file.Seek(0, io.SeekStart)
-			zlibWriter := zlib.NewWriter(outputFile)
-			defer zlibWriter.Close()
-			io.WriteString(zlibWriter, fmt.Sprintf("blob %d\000", fileInfo.Size()))
-			io.Copy(zlibWriter, file)
-		}
-		fmt.Println(hash)
-
+		hashobject.HashObject(args[0], *hashObjectWriteMode)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command %s\n", command)
 		os.Exit(1)
