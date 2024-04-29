@@ -17,7 +17,11 @@ func CatFilePrettyPrint(gitObjectName string) {
 	}
 	defer r.Close()
 	// Read until null byte encountered
-	parts := object.SplitBufferByNullByteN(r, 1)
+	parts, err := object.SplitBufferByNullByteN(r, 1)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		return
+	}
 	header := parts[0]
 	headerParts := strings.Split(string(header), " ")
 	// kind := headerParts[0]
