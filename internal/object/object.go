@@ -1,11 +1,33 @@
 package object
 
 import (
+	"compress/zlib"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 )
+
+func GetZlibReaderFromBlob(gitObjectName string) (io.ReadCloser, error) {
+	matches := GetObjectsMatchingPrefix(".git/objects", gitObjectName)
+	if len(matches) > 1 {
+		return nil, fmt.Errorf("error: short object ID %s is ambiguous", gitObjectName)
+	}
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("fatal: Not a valid object name: %s\n", gitObjectName)
+	}
+	gitObject, err := os.Open(
+		fmt.Sprintf(".git/objects/%s", matches[0]),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("fatal: Not a valid object name: %s\n", err)
+	}
+	r, err := zlib.NewReader(gitObject)
+	if err != nil {
+		return nil, fmt.Errorf("fatal: Unable to decompress the object file: %s\n", err)
+	}
+	return r, nil
+}
 
 func GetObjectsMatchingPrefix(directoryName string, prefix string) []string {
 	entries, _ := os.ReadDir(fmt.Sprintf("%s/%s", directoryName, prefix[:2]))
@@ -19,8 +41,9 @@ func GetObjectsMatchingPrefix(directoryName string, prefix string) []string {
 }
 
 func SplitBufferByNullByte(r io.Reader) [][]byte {
-  return SplitBufferByNullByteN(r, -1)
+	return SplitBufferByNullByteN(r, -1)
 }
+
 func SplitBufferByNullByteN(r io.Reader, count int) [][]byte {
 	buf := make([]byte, 1)
 	var part []byte

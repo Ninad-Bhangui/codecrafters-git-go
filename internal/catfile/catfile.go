@@ -1,7 +1,6 @@
 package catfile
 
 import (
-	"compress/zlib"
 	"fmt"
 	"io"
 	"os"
@@ -12,26 +11,9 @@ import (
 )
 
 func CatFilePrettyPrint(gitObjectName string) {
-	matches := object.GetObjectsMatchingPrefix(".git/objects", gitObjectName)
-	if len(matches) > 1 {
-		fmt.Fprintf(os.Stderr, "error: short object ID %s is ambiguous", gitObjectName)
-		return
-	}
-	if len(matches) == 0 {
-		fmt.Fprintf(os.Stderr, "fatal: Not a valid object name: %s\n", gitObjectName)
-		return
-	}
-	gitObject, err := os.Open(
-		fmt.Sprintf(".git/objects/%s", matches[0]),
-	)
+	r, err := object.GetZlibReaderFromBlob(gitObjectName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "fatal: Not a valid object name: %s\n", err)
-		return
-	}
-
-	r, err := zlib.NewReader(gitObject)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "fatal: Unable to decompress the object file: %s\n", err)
+		fmt.Fprintf(os.Stderr, "%s", err)
 	}
 	defer r.Close()
 	// Read until null byte encountered
