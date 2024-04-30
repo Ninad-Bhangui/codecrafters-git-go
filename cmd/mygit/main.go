@@ -8,6 +8,7 @@ import (
 	"github.com/codecrafters-io/git-starter-go/internal/catfile"
 	"github.com/codecrafters-io/git-starter-go/internal/hashobject"
 	"github.com/codecrafters-io/git-starter-go/internal/lstree"
+	"github.com/codecrafters-io/git-starter-go/internal/writetree"
 )
 
 // Usage: your_git.sh <command> <arg1> <arg2> ...
@@ -28,6 +29,8 @@ func main() {
 
 	lsTreeCmd := flag.NewFlagSet("ls-tree", flag.ExitOnError)
 	lsTreeNameOnly := lsTreeCmd.Bool("name-only", false, "Print Name only")
+
+	writeTreeCmd := flag.NewFlagSet("write-tree", flag.ExitOnError)
 
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "usage: mygit <command> [<args>...]\n")
@@ -75,6 +78,9 @@ func main() {
 
 		lstree.LsTree(args[0], *lsTreeNameOnly)
 
+	case "write-tree":
+		writeTreeCmd.Parse(os.Args[2:])
+		writetree.WriteTree()
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command %s\n", command)
 		os.Exit(1)
