@@ -86,7 +86,6 @@ func CreateTree(dirName string) (string, error) {
 	for _, entry := range entries {
 		if entry.Name() != excludeDir {
 			if entry.Type().IsDir() {
-				fmt.Printf("%s is a directory\n", entry.Name())
 				fileMode := "40000"
 				hexDigest, err := CreateTree(path.Join(dirName, entry.Name()))
 				if err != nil {
@@ -105,7 +104,6 @@ func CreateTree(dirName string) (string, error) {
 
 			} else {
 				fileMode := "100644"
-				fmt.Printf("%s is a file with mode %s.\n", entry.Name(), fileMode)
 				hexDigest, err := CreateBlob(path.Join(dirName, entry.Name()), true) // TODO: Consider returning byte array so that consumer can decide to convert or return both.
 				if err != nil {
 					return "", fmt.Errorf("%s\n", err)
