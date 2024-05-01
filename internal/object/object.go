@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"strconv"
@@ -81,44 +82,17 @@ func SplitBufferByNullByteN(r io.Reader, count int) ([][]byte, error) {
 func CreateTree(dirName string) (string, error) {
 	excludeDir := ".git"
 	entries, _ := os.ReadDir(dirName)
-
+	var err error
 	treeEntries := []TreeEntry{}
 	for _, entry := range entries {
 		if entry.Name() != excludeDir {
-			if entry.Type().IsDir() {
-				fileMode := "40000"
-				hexDigest, err := CreateTree(path.Join(dirName, entry.Name()))
-				if err != nil {
-					return "", fmt.Errorf("%s\n", err)
-				}
-				te := TreeEntry{
-					Mode: fileMode,
-					Name: entry.Name(),
-				}
-				err = te.SetByteShaFromHexDigest(hexDigest)
-				if err != nil {
-					fmt.Errorf("%s\n", err)
-				}
-				// TODO: Change it to stream mode to avoid in memory collection
-				treeEntries = append(treeEntries, te)
-
-			} else {
-				fileMode := "100644"
-				hexDigest, err := CreateBlob(path.Join(dirName, entry.Name()), true) // TODO: Consider returning byte array so that consumer can decide to convert or return both.
-				if err != nil {
-					return "", fmt.Errorf("%s\n", err)
-				}
-				te := TreeEntry{
-					Mode: fileMode,
-					Name: entry.Name(),
-				}
-				err = te.SetByteShaFromHexDigest(hexDigest)
-				if err != nil {
-					return "", fmt.Errorf("%s\n", err)
-				}
-				// TODO: Change it to stream mode to avoid in memory collection
-				treeEntries = append(treeEntries, te)
+			te, err := createTreeEntryFromDirEntry(dirName, entry)
+			if err != nil {
+				return "", fmt.Errorf("%s\n", err)
 			}
+			// TODO: Change it to stream mode to avoid in memory collection
+			treeEntries = append(treeEntries, te)
+
 		}
 	}
 	n, buff, err := TreeEntriesToByteBuffer(treeEntries)
@@ -135,8 +109,6 @@ func CreateTree(dirName string) (string, error) {
 	defer zlibWriter.Close()
 	hasher := sha1.New()
 	multiWriter := io.MultiWriter(hasher, zlibWriter)
-	// // TESTING IF ZLIB IS WORKING FINE BY WRITING SIMPLE string
-	// io.WriteString(multiWriter, "teststring")
 
 	// Actual Write
 	io.WriteString(multiWriter, fmt.Sprintf("tree %d\000", n))
@@ -158,6 +130,37 @@ func CreateTree(dirName string) (string, error) {
 		)
 	}
 	return hash, nil
+}
+
+func createTreeEntryFromDirEntry(dirName string, entry fs.DirEntry) (TreeEntry, error) {
+	var hexDigest string
+	var fileMode string
+	var err error
+	var te TreeEntry
+
+	if entry.Type().IsDir() {
+		fileMode = "40000"
+		hexDigest, err = CreateTree(path.Join(dirName, entry.Name()))
+		if err != nil {
+			return te, fmt.Errorf("%s\n", err)
+		}
+
+	} else {
+		fileMode = "100644"
+		hexDigest, err = CreateBlob(path.Join(dirName, entry.Name()), true) // TODO: Consider returning byte array so that consumer can decide to convert or return both.
+		if err != nil {
+			return te, fmt.Errorf("%s\n", err)
+		}
+	}
+	te = TreeEntry{
+		Mode: fileMode,
+		Name: entry.Name(),
+	}
+	err = te.SetByteShaFromHexDigest(hexDigest)
+	if err != nil {
+		return te, fmt.Errorf("%s\n", err)
+	}
+	return te, nil
 }
 
 func CreateBlob(filename string, write bool) (string, error) {
