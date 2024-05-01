@@ -15,12 +15,14 @@ func LsTree(gitObjectName string, nameOnly bool) {
 	r, err := object.GetZlibReaderFromBlob(gitObjectName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s", err)
+    return
 	}
 	defer r.Close()
 	// Read until first null byte encountered
 	_, err = object.SplitBufferByNullByteN(r, 1)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s", err)
+    return
 	}
 	// header := parts[0]
 	// headerParts := strings.Split(string(header), " ")
@@ -29,6 +31,10 @@ func LsTree(gitObjectName string, nameOnly bool) {
 	hashbuf := make([]byte, 20)
 	for {
 		parts, err := object.SplitBufferByNullByteN(r, 1)
+    if err != nil {
+      fmt.Fprintf(os.Stderr, "%s\n", err)
+      return
+    }
 		if len(parts) == 0 {
 			break
 		}
