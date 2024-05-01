@@ -90,7 +90,6 @@ func CreateTree(dirName string) (string, error) {
 			if err != nil {
 				return "", fmt.Errorf("%s\n", err)
 			}
-			// TODO: Change it to stream mode to avoid in memory collection
 			treeEntries = append(treeEntries, te)
 
 		}
