@@ -9,6 +9,7 @@ import (
 	"github.com/codecrafters-io/git-starter-go/internal/hashobject"
 	"github.com/codecrafters-io/git-starter-go/internal/lstree"
 	"github.com/codecrafters-io/git-starter-go/internal/writetree"
+	"github.com/codecrafters-io/git-starter-go/internal/committree"
 )
 
 // Usage: your_git.sh <command> <arg1> <arg2> ...
@@ -31,6 +32,10 @@ func main() {
 	lsTreeNameOnly := lsTreeCmd.Bool("name-only", false, "Print Name only")
 
 	writeTreeCmd := flag.NewFlagSet("write-tree", flag.ExitOnError)
+
+	commitTreeCmd := flag.NewFlagSet("commit-tree", flag.ExitOnError)
+	parentCommit := commitTreeCmd.String("p", "", "parent commit id")
+	commitMsg := commitTreeCmd.String("m", "", "commit message")
 
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "usage: mygit <command> [<args>...]\n")
@@ -81,6 +86,16 @@ func main() {
 	case "write-tree":
 		writeTreeCmd.Parse(os.Args[2:])
 		writetree.WriteTree()
+
+	case "commit-tree":
+		commitTreeCmd.Parse(os.Args[2:])
+		args := commitTreeCmd.Args()
+		if len(args) != 1 {
+			commitTreeCmd.PrintDefaults()
+		}
+
+		committree.InvokeCommitTree(args[0], *commitMsg, []string{*parentCommit})
+
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command %s\n", command)
 		os.Exit(1)
