@@ -80,10 +80,10 @@ func commitContent(
 	authorDateTimezone := fmt.Sprintf("%s%02d%02d", offsetSymbol, offsetHours, offsetSeconds)
 	buff := bytes.Buffer{}
 	size := 0
-	n, _ := buff.WriteString(fmt.Sprintf("tree %s", treeHash))
+	n, _ := buff.WriteString(fmt.Sprintf("tree %s\n", treeHash))
 	size += n
 	for _, hash := range parentTreeHashes {
-		n, _ := buff.WriteString(fmt.Sprintf("%s\n", hash))
+		n, _ := buff.WriteString(fmt.Sprintf("parent %s\n", hash))
 		size += n
 	}
 	n, _ = buff.WriteString(
